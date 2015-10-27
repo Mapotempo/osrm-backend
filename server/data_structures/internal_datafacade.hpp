@@ -45,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <osrm/coordinate.hpp>
 #include <osrm/server_paths.hpp>
 
+#include <boost/thread.hpp>
+
 #include <limits>
 
 template <class EdgeDataT> class InternalDataFacade final : public BaseDataFacade<EdgeDataT>
