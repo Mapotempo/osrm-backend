@@ -204,7 +204,7 @@ std::size_t Prepare::LoadEdgeExpandedGraph(
                 auto speed_iter = segment_speed_lookup.find(std::pair<unsigned, unsigned>(previous_osm_node_id, this_osm_node_id));
                 if (speed_iter != segment_speed_lookup.end())
                 {
-                    new_weight += segment_length * speed_iter->second;
+                    new_weight += (segment_length * 10.) / (speed_iter->second / 3.6);
                 }
 
                 previous_osm_node_id = this_osm_node_id;
