@@ -187,33 +187,43 @@ std::size_t Prepare::LoadEdgeExpandedGraph(
             unsigned fixed_penalty;
             edge_fixed_penalties_input_stream.read(reinterpret_cast<char *>(&fixed_penalty), sizeof(fixed_penalty));
 
-            int new_weight = -1;
+            int new_weight = 0;
 
             unsigned num_osm_nodes = 0;
             edge_segment_input_stream.read(reinterpret_cast<char *>(&num_osm_nodes), sizeof(num_osm_nodes));
+            unsigned total_edge_count = num_osm_nodes - 1;
+            unsigned total_edges_updated = 0;
             NodeID previous_osm_node_id;
             edge_segment_input_stream.read(reinterpret_cast<char *>(&previous_osm_node_id), sizeof(previous_osm_node_id));
             NodeID this_osm_node_id;
             double segment_length;
+            int segment_weight;
             --num_osm_nodes;
             for(; num_osm_nodes != 0; --num_osm_nodes)
             {
                 edge_segment_input_stream.read(reinterpret_cast<char *>(&this_osm_node_id), sizeof(this_osm_node_id));
                 edge_segment_input_stream.read(reinterpret_cast<char *>(&segment_length), sizeof(segment_length));
+                edge_segment_input_stream.read(reinterpret_cast<char *>(&segment_weight), sizeof(segment_weight));
 
                 auto speed_iter = segment_speed_lookup.find(std::pair<unsigned, unsigned>(previous_osm_node_id, this_osm_node_id));
                 if (speed_iter != segment_speed_lookup.end())
                 {
-                    new_weight += (segment_length * 10.) / (speed_iter->second / 3.6);
+                    new_weight += std::max(1, static_cast<int>(std::floor(
+                                    (segment_length * 10.) / (speed_iter->second / 3.6)
+                                    + .5)));
+
+                    ++total_edges_updated;
+                } else {
+                    // If no lookup found, use the original weight value for this segment
+                    new_weight += segment_weight;
+                    ++total_edges_updated;
                 }
 
                 previous_osm_node_id = this_osm_node_id;
             }
 
-            if (new_weight >= 0)
-            {
-                inbuffer.weight = fixed_penalty + new_weight;
-            }
+            BOOST_ASSERT(total_edges_updated == total_edge_count);
+            inbuffer.weight = fixed_penalty + new_weight;
         }
 
         edge_based_edge_list.emplace_back(std::move(inbuffer));

@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../util/lua_util.hpp"
 #include "../util/simple_logger.hpp"
 #include "../util/timing_util.hpp"
+#include "../util/osrm_exception.hpp"
 
 #include <boost/assert.hpp>
 
@@ -516,6 +517,7 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
 
                             edge_segment_file.write(reinterpret_cast<const char *>(&to.node_id), sizeof(to.node_id));
                             edge_segment_file.write(reinterpret_cast<const char *>(&segment_length), sizeof(segment_length));
+                            edge_segment_file.write(reinterpret_cast<const char *>(&target_node.second), sizeof(target_node.second));
                             previous = target_node.first;
                         }
                     }
@@ -529,6 +531,7 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
                         edge_segment_file.write(reinterpret_cast<const char *>(&from.node_id), sizeof(from.node_id));
                         edge_segment_file.write(reinterpret_cast<const char *>(&to.node_id), sizeof(to.node_id));
                         edge_segment_file.write(reinterpret_cast<const char *>(&segment_length), sizeof(segment_length));
+                        edge_segment_file.write(reinterpret_cast<const char *>(&edge_data1.distance), sizeof(edge_data1.distance));
                     }
                 }
             }
