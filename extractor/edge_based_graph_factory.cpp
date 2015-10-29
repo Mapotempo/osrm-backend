@@ -432,7 +432,7 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
                 if (m_traffic_lights.find(node_v) != m_traffic_lights.end())
                 {
                     distance += speed_profile.traffic_signal_penalty;
-                    if (speed_profile.traffic_signal_penalty != 0)
+                    if (generate_edge_lookup && speed_profile.traffic_signal_penalty != 0)
                     {
                         const QueryNode &nodeinfo = m_node_info_list[node_v];
                         std::cout << "{ \"type\":\"Feature\",\"properties\":{\"type\":\"trafficlights\",\"cost\":" << speed_profile.traffic_signal_penalty/10. << "},";
@@ -460,14 +460,14 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
                 if (turn_instruction == TurnInstruction::UTurn)
                 {
                     distance += speed_profile.u_turn_penalty;
-                    if (speed_profile.u_turn_penalty != 0)
+                    if (generate_edge_lookup && speed_profile.u_turn_penalty != 0)
                     {
                         const QueryNode &nodeinfo = m_node_info_list[node_v];
                         std::cout << "{ \"type\":\"Feature\",\"properties\":{\"type\":\"uturn\",\"cost\":" << speed_profile.u_turn_penalty/10. << "},";
                         std::cout << " \"geometry\":{\"type\":\"Point\",\"coordinates\":[" << std::setprecision(12) << nodeinfo.lon/COORDINATE_PRECISION << "," << nodeinfo.lat/COORDINATE_PRECISION << "]}}" << std::endl;
                     }
                 } 
-                if (turn_penalty > 0) 
+                if (generate_edge_lookup && turn_penalty > 0) 
                 {
                     const QueryNode &v = m_node_info_list[node_v];
 
