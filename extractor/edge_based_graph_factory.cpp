@@ -361,7 +361,7 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
 
     for (const auto node_u : osrm::irange(0u, m_node_based_graph->GetNumberOfNodes()))
     {
-        progress.printStatus(node_u);
+        //progress.printStatus(node_u);
         for (const EdgeID e1 : m_node_based_graph->GetAdjacentEdgeRange(node_u))
         {
             if (m_node_based_graph->GetEdgeData(e1).reversed)
@@ -432,6 +432,12 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
                 if (m_traffic_lights.find(node_v) != m_traffic_lights.end())
                 {
                     distance += speed_profile.traffic_signal_penalty;
+                    if (speed_profile.traffic_signal_penalty != 0)
+                    {
+                        const QueryNode &nodeinfo = m_node_info_list[node_v];
+                        std::cout << "{ \"type\":\"Feature\",\"properties\":{\"type\":\"trafficlights\",\"cost\":" << speed_profile.traffic_signal_penalty/10. << "},";
+                        std::cout << " \"geometry\":{\"type\":\"Point\",\"coordinates\":[" << std::setprecision(12) << nodeinfo.lon/COORDINATE_PRECISION << "," << nodeinfo.lat/COORDINATE_PRECISION << "]}}" << std::endl;
+                    }
                 }
 
                 // unpack last node of first segment if packed
@@ -454,6 +460,24 @@ void EdgeBasedGraphFactory::GenerateEdgeExpandedEdges(
                 if (turn_instruction == TurnInstruction::UTurn)
                 {
                     distance += speed_profile.u_turn_penalty;
+                    if (speed_profile.u_turn_penalty != 0)
+                    {
+                        const QueryNode &nodeinfo = m_node_info_list[node_v];
+                        std::cout << "{ \"type\":\"Feature\",\"properties\":{\"type\":\"uturn\",\"cost\":" << speed_profile.u_turn_penalty/10. << "},";
+                        std::cout << " \"geometry\":{\"type\":\"Point\",\"coordinates\":[" << std::setprecision(12) << nodeinfo.lon/COORDINATE_PRECISION << "," << nodeinfo.lat/COORDINATE_PRECISION << "]}}" << std::endl;
+                    }
+                } 
+                if (turn_penalty > 0) 
+                {
+                    const QueryNode &v = m_node_info_list[node_v];
+
+                    const float bearing_uv = coordinate_calculation::bearing(first_coordinate,v);
+                    float uvw_normal = bearing_uv + turn_angle/2;
+                    while (uvw_normal >= 360.) { uvw_normal -= 360.; }
+
+                    std::cout << "{ \"type\":\"Feature\",\"properties\":{\"type\":\"turn\",\"cost\":" << turn_penalty/10. << ",\"turn_angle\":" << static_cast<int>(turn_angle) << ",\"normal\":" << static_cast<int>(uvw_normal) << "},";
+                    std::cout << " \"geometry\":{\"type\":\"Point\",\"coordinates\":[" << std::setprecision(12) << v.lon/COORDINATE_PRECISION << "," << v.lat/COORDINATE_PRECISION << "]}}" << std::endl;
+
                 }
                 distance += turn_penalty;
 

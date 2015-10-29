@@ -208,16 +208,23 @@ std::size_t Prepare::LoadEdgeExpandedGraph(
                 auto speed_iter = segment_speed_lookup.find(std::pair<unsigned, unsigned>(previous_osm_node_id, this_osm_node_id));
                 if (speed_iter != segment_speed_lookup.end())
                 {
-                    new_weight += std::max(1, static_cast<int>(std::floor(
+                    int new_segment_weight = std::max(1, static_cast<int>(std::floor(
                                     (segment_length * 10.) / (speed_iter->second / 3.6)
                                     + .5)));
+                    new_weight += new_segment_weight;
+
+                    std::cout << "{ \"type\":\"Feature\",\"properties\":{\"original\":false, \"weight\":" << new_segment_weight/10.0 << ",\"speed\":"<< static_cast<int>(std::floor((segment_length/new_segment_weight)*10.*3.6)) <<"},";
+                    std::cout << "\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[!!" << previous_osm_node_id << "!!],[!!"<<this_osm_node_id<<"!!]]}}" << std::endl;
 
                     ++total_edges_updated;
                 } else {
                     // If no lookup found, use the original weight value for this segment
                     new_weight += segment_weight;
+                    std::cout << "{ \"type\":\"Feature\",\"properties\":{\"original\":true, \"weight\":" << segment_weight/10.0 << ",\"speed\":"<< static_cast<int>(std::floor((segment_length/segment_weight)*10.*3.6)) <<"},";
+                    std::cout << "\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[!!" << previous_osm_node_id << "!!],[!!"<<this_osm_node_id<<"!!]]}}" << std::endl;
                     ++total_edges_updated;
                 }
+
 
                 previous_osm_node_id = this_osm_node_id;
             }
