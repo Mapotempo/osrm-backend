@@ -53,6 +53,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <vector>
 #include <exception>
+#include <ctime>
 
 Prepare::~Prepare() {}
 
@@ -173,6 +174,13 @@ std::size_t Prepare::LoadEdgeExpandedGraph(
         }
     }
 
+    time_t raw_time;
+    struct tm * timeinfo;
+    char time_buffer[80];
+    time(&raw_time);
+    timeinfo = localtime(&raw_time);
+    strftime(time_buffer, 80, "%Y-%m-%d %H:%M %Z", timeinfo);
+
     // TODO: can we read this in bulk?  DeallocatingVector isn't necessarily
     // all stored contiguously
     for (;number_of_edges > 0; --number_of_edges)
@@ -214,7 +222,8 @@ std::size_t Prepare::LoadEdgeExpandedGraph(
                     new_weight += new_segment_weight;
 
                     std::cout << "{ \"type\":\"Feature\",\"properties\":{\"original\":false, \"weight\":" << new_segment_weight/10.0 << ",\"speed\":"<< static_cast<int>(std::floor((segment_length/new_segment_weight)*10.*3.6)) <<",";
-                    std::cout << "\"from_node\": " <<  previous_osm_node_id << ", \"to_node\": " << this_osm_node_id <<"},";
+                    std::cout << "\"from_node\": " <<  previous_osm_node_id << ", \"to_node\": " << this_osm_node_id <<",";
+                    std::cout << "\"timestamp\": \"" << time_buffer <<"\"},";
                     std::cout << "\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[!!" << previous_osm_node_id << "!!],[!!"<<this_osm_node_id<<"!!]]}}" << std::endl;
 
                     ++total_edges_updated;
