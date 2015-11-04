@@ -1009,6 +1009,141 @@ class StaticRTree
         return !result_phantom_node_vector.empty();
     }
 
+    // Returns elements within max_distance.
+    // If the minium of elements could not be found in the search radius, widen
+    // it until the minimum can be satisfied.
+    bool IncrementalFindSegmentForCoordinateWithDistance(
+        const FixedPointCoordinate &input_coordinate,
+        std::vector<std::pair<NodeID, NodeID>> &result_vector,
+        const double max_distance,
+        const int filter_bearing = 0,
+        const int filter_bearing_range = 180,
+        const unsigned max_checked_elements = 4 * LEAF_NODE_SIZE)
+    {
+        unsigned inspected_elements = 0;
+
+        std::pair<double, double> projected_coordinate = {
+            mercator::lat2y(input_coordinate.lat / COORDINATE_PRECISION),
+            input_coordinate.lon / COORDINATE_PRECISION};
+
+        // initialize queue with root element
+        std::priority_queue<IncrementalQueryCandidate> traversal_queue;
+        traversal_queue.emplace(0.f, m_search_tree[0]);
+
+        while (!traversal_queue.empty())
+        {
+            const IncrementalQueryCandidate current_query_node = traversal_queue.top();
+            traversal_queue.pop();
+
+            if (current_query_node.min_dist > max_distance ||
+                inspected_elements >= max_checked_elements)
+            {
+                break;
+            }
+
+            if (current_query_node.node.template is<TreeNode>())
+            { // current object is a tree node
+                const TreeNode &current_tree_node =
+                    current_query_node.node.template get<TreeNode>();
+                if (current_tree_node.child_is_on_disk)
+                {
+                    LeafNode current_leaf_node;
+                    LoadLeafFromDisk(current_tree_node.children[0], current_leaf_node);
+
+                    // current object represents a block on disk
+                    for (const auto i : osrm::irange(0u, current_leaf_node.object_count))
+                    {
+                        const auto &current_edge = current_leaf_node.objects[i];
+                        const float current_perpendicular_distance = coordinate_calculation::
+                            perpendicular_distance_from_projected_coordinate(
+                                m_coordinate_list->at(current_edge.u),
+                                m_coordinate_list->at(current_edge.v), input_coordinate,
+                                projected_coordinate);
+                        // distance must be non-negative
+                        BOOST_ASSERT(0.f <= current_perpendicular_distance);
+
+                        if (current_perpendicular_distance <= max_distance)
+                        {
+                            traversal_queue.emplace(current_perpendicular_distance, current_edge);
+                        }
+                    }
+                }
+                else
+                {
+                    // for each child mbr get a lower bound and enqueue it
+                    for (const auto i : osrm::irange(0u, current_tree_node.child_count))
+                    {
+                        const int32_t child_id = current_tree_node.children[i];
+                        const TreeNode &child_tree_node = m_search_tree[child_id];
+                        const RectangleT &child_rectangle =
+                            child_tree_node.minimum_bounding_rectangle;
+                        const float lower_bound_to_element =
+                            child_rectangle.GetMinDist(input_coordinate);
+                        BOOST_ASSERT(0.f <= lower_bound_to_element);
+
+                        if (lower_bound_to_element <= max_distance)
+                        {
+                            traversal_queue.emplace(lower_bound_to_element, child_tree_node);
+                        }
+
+                    }
+                }
+            }
+            else
+            { // current object is a leaf node
+                ++inspected_elements;
+                // inspecting an actual road segment
+                const EdgeDataT &current_segment =
+                    current_query_node.node.template get<EdgeDataT>();
+
+                // check if it is smaller than what we had before
+                float current_ratio = 0.f;
+                FixedPointCoordinate foot_point_coordinate_on_segment;
+
+                const float current_perpendicular_distance =
+                    coordinate_calculation::perpendicular_distance_from_projected_coordinate(
+                        m_coordinate_list->at(current_segment.u),
+                        m_coordinate_list->at(current_segment.v), input_coordinate,
+                        projected_coordinate, foot_point_coordinate_on_segment, current_ratio);
+
+                if (current_perpendicular_distance >= max_distance)
+                {
+                    traversal_queue = std::priority_queue<IncrementalQueryCandidate>{};
+                    continue;
+                }
+
+                const float forward_edge_bearing = coordinate_calculation::bearing(
+                                m_coordinate_list->at(current_segment.u),
+                                m_coordinate_list->at(current_segment.v));
+
+                const float backward_edge_bearing = (forward_edge_bearing + 180) > 360 
+                                                      ? (forward_edge_bearing - 180) 
+                                                      : (forward_edge_bearing + 180);
+
+                const bool forward_bearing_valid = IsBearingWithinBounds(forward_edge_bearing, filter_bearing, filter_bearing_range);
+                const bool backward_bearing_valid = IsBearingWithinBounds(backward_edge_bearing, filter_bearing, filter_bearing_range);
+
+                if (forward_bearing_valid) 
+                {
+                    result_vector.emplace_back( std::make_pair(current_segment.u, current_segment.v) );
+                }
+                if (backward_bearing_valid) 
+                {
+                    result_vector.emplace_back( std::make_pair(current_segment.v, current_segment.u) );
+                }
+
+            }
+            // stop the search by flushing the queue
+            if (inspected_elements >= max_checked_elements)
+            {
+                traversal_queue = std::priority_queue<IncrementalQueryCandidate>{};
+            }
+        }
+
+        return !result_vector.empty();
+    }
+
+
     bool FindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate,
                                       PhantomNode &result_phantom_node,
                                       const unsigned zoom_level)

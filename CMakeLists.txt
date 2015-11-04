@@ -357,11 +357,16 @@ if(BUILD_TOOLS)
   add_executable(osrm-springclean tools/springclean.cpp $<TARGET_OBJECTS:FINGERPRINT> $<TARGET_OBJECTS:LOGGER> $<TARGET_OBJECTS:EXCEPTION>)
   target_link_libraries(osrm-springclean ${Boost_LIBRARIES})
 
+
+  add_executable(segment_match tools/segment_match.cpp $<TARGET_OBJECTS:EXCEPTION> $<TARGET_OBJECTS:LOGGER> $<TARGET_OBJECTS:COORDINATE> $<TARGET_OBJECTS:MERCATOR>)
+  target_link_libraries(segment_match ${Boost_LIBRARIES})
+
   install(TARGETS osrm-cli DESTINATION bin)
   install(TARGETS osrm-io-benchmark DESTINATION bin)
   install(TARGETS osrm-unlock-all DESTINATION bin)
   install(TARGETS osrm-check-hsgr DESTINATION bin)
   install(TARGETS osrm-springclean DESTINATION bin)
+  install(TARGETS segment_match DESTINATION bin)
 endif()
 
 file(GLOB InstallGlob include/osrm/*.hpp library/osrm.hpp)
