@@ -15,6 +15,11 @@
 #include <string>
 #include <vector>
 
+#include <osmium/index/map/sparse_file_array.hpp>
+#include <osmium/index/map/dense_file_array.hpp>
+#include <osmium/handler/node_locations_for_ways.hpp>
+#include <osmium/dynamic_handler.hpp>
+
 namespace osmium
 {
 class Node;
@@ -35,6 +40,12 @@ namespace extractor
 class RestrictionParser;
 struct ExtractionNode;
 struct ExtractionWay;
+
+using index_type = osmium::index::map::SparseFileArray<osmium::unsigned_object_id_type, osmium::Location>;
+// using index_type = osmium::index::map::DenseFileArray<osmium::unsigned_object_id_type, osmium::Location>;
+
+// The location handler always depends on the index type
+using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
 
 /**
  * Abstract class that handles processing osmium ways, nodes and relation objects by applying
@@ -65,6 +76,11 @@ class ScriptingEnvironment
                     tbb::concurrent_vector<std::pair<std::size_t, ExtractionWay>> &resulting_ways,
                     tbb::concurrent_vector<boost::optional<InputRestrictionContainer>>
                         &resulting_restrictions) = 0;
+
+    static location_handler_type *location_handler;
+    static void setCache(location_handler_type &cache) {
+        location_handler = &cache;
+    };
 };
 }
 }

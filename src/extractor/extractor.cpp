@@ -117,6 +117,21 @@ int Extractor::run(ScriptingEnvironment &scripting_environment)
             std::min(recommended_num_threads, config.requested_num_threads);
         tbb::task_scheduler_init init(number_of_threads);
 
+        // Node Location Cache
+        const osmium::io::File input_file_cache(config.input_path.string());
+        int fd = open("nodes.cache", O_RDWR | O_CREAT, 0666);
+        if (fd == -1)
+        {
+            throw std::runtime_error(strerror(errno));
+        }
+
+        index_type index{fd};
+
+        location_handler_type location_handler(index);
+        location_handler.ignore_errors();
+
+        scripting_environment.setCache(location_handler);
+
         util::SimpleLogger().Write() << "Input file: " << config.input_path.filename().string();
         if (!config.profile_path.empty())
         {
@@ -174,6 +189,10 @@ int Extractor::run(ScriptingEnvironment &scripting_environment)
             for (auto iter = std::begin(buffer), end = std::end(buffer); iter != end; ++iter)
             {
                 osm_elements.push_back(iter);
+
+                // Feed the cache, we assume the nodes are stored first, into data source.
+                if(iter->type() == osmium::item_type::node)
+                    location_handler.node(static_cast<const osmium::Node &>(*iter));
             }
 
             // clear resulting vectors

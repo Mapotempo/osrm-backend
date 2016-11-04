@@ -67,6 +67,8 @@ LuaScriptingEnvironment::LuaScriptingEnvironment(const std::string &file_name)
     util::SimpleLogger().Write() << "Using script " << file_name;
 }
 
+location_handler_type *ScriptingEnvironment::location_handler = nullptr;
+
 void LuaScriptingEnvironment::InitContext(LuaScriptingContext &context)
 {
     typedef double (osmium::Location::*location_member_ptr_type)() const;
@@ -195,6 +197,10 @@ void LuaScriptingEnvironment::InitContext(LuaScriptingContext &context)
              .def(luabind::constructor<>())
              // Dear ambitious reader: registering .location() as in:
              // .def("location", +[](const osmium::NodeRef& nref){ return nref.location(); })
+             .def("location", +[](const osmium::NodeRef& nref){
+                 osmium::Location location = LuaScriptingEnvironment::location_handler->get_node_location(nref.ref());
+                 return location;
+             })
              // will crash at runtime, since we're not (yet?) using libosnmium's
              // NodeLocationsForWays cache
              .def("id", &osmium::NodeRef::ref),
