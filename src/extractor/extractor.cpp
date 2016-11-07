@@ -256,6 +256,8 @@ int Extractor::run(ScriptingEnvironment &scripting_environment)
         TIMER_STOP(extracting);
         util::SimpleLogger().Write() << "extraction finished after " << TIMER_SEC(extracting)
                                      << "s";
+        close(fd);
+        remove("nodes.cache");
     }
 
     {
