@@ -179,6 +179,7 @@ void LuaScriptingEnvironment::InitContext(LuaScriptingContext &context)
              .def("location", &osmium::Node::location)
              .def("get_value_by_key", &osmium::Node::get_value_by_key)
              .def("get_value_by_key", &get_value_by_key<osmium::Node>)
+             .def("version", &osmium::Node::version)             
              .def("id", &osmium::Node::id),
 
          luabind::class_<ExtractionNode>("ResultNode")
@@ -242,6 +243,7 @@ void LuaScriptingEnvironment::InitContext(LuaScriptingContext &context)
              .def("get_value_by_key", &osmium::Way::get_value_by_key)
              .def("get_value_by_key", &get_value_by_key<osmium::Way>)
              .def("id", &osmium::Way::id)
+             .def("version", &osmium::Way::version)
              .def("get_nodes", get_nodes_for_way, luabind::return_stl_iterator),
          luabind::class_<InternalExtractorEdge>("EdgeSource")
              .def_readonly("source_coordinate", &InternalExtractorEdge::source_coordinate)
