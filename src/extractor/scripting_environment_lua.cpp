@@ -172,7 +172,8 @@ void LuaScriptingEnvironment::InitContext(LuaScriptingContext &context)
 
          luabind::class_<osmium::Location>("Location")
              .def<location_member_ptr_type>("lat", &osmium::Location::lat)
-             .def<location_member_ptr_type>("lon", &osmium::Location::lon),
+             .def<location_member_ptr_type>("lon", &osmium::Location::lon)
+             .def("valid", &osmium::Location::valid),
 
          luabind::class_<osmium::Node>("Node")
              // .def<node_member_ptr_type>("tags", &osmium::Node::tags)
@@ -235,7 +236,7 @@ void LuaScriptingEnvironment::InitContext(LuaScriptingContext &context)
          luabind::class_<osmium::NodeRef>("NodeRef")
              .def(luabind::constructor<>())
              // Dear ambitious reader: registering .location() as in:
-             // .def("location", +[](const osmium::NodeRef& nref){ return nref.location(); })
+             .def("location", +[](const osmium::NodeRef& nref){ return nref.location(); })
              // will crash at runtime, since we're not (yet?) using libosnmium's
              // NodeLocationsForWays cache
              .def("id", &osmium::NodeRef::ref),
