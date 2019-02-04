@@ -20,12 +20,12 @@ namespace util
 
 template <int N, typename T = std::string> struct VariableGroupBlock
 {
-    static constexpr std::uint32_t BLOCK_SIZE = N;
+    static constexpr std::uint32_t BLOCK_SIZE_ = N;
 
     using ResultType = T;
     using ValueType = typename T::value_type;
 
-    static_assert(0 <= BLOCK_SIZE && BLOCK_SIZE <= 16, "incorrect block size");
+//    static_assert(0 <= BLOCK_SIZE_ && BLOCK_SIZE_ <= 16, "incorrect block size");
     static_assert(sizeof(ValueType) == 1, "data basic type must char");
 
     struct BlockReference
@@ -148,7 +148,7 @@ template <int N, typename T = std::string> struct VariableGroupBlock
             var_advance(first, var_lengths, descriptor & 0x3);
         }
 
-        if (local_index < BLOCK_SIZE)
+        if (local_index < BLOCK_SIZE_)
         {
             last = first;
             var_advance(last, var_lengths, descriptor & 0x3);
@@ -158,7 +158,7 @@ template <int N, typename T = std::string> struct VariableGroupBlock
 
 template <int N, typename T = std::string> struct FixedGroupBlock
 {
-    static constexpr std::uint32_t BLOCK_SIZE = N;
+    static constexpr std::uint32_t BLOCK_SIZE_ = N;
 
     using ResultType = T;
     using ValueType = typename T::value_type;
@@ -183,7 +183,7 @@ template <int N, typename T = std::string> struct FixedGroupBlock
         BlockReference refernce{static_cast<decltype(BlockReference::offset)>(data_offset)};
         out.write((const char *)&refernce, sizeof(refernce));
 
-        return BLOCK_SIZE;
+        return BLOCK_SIZE_;
     }
 
     /// Write a fixed length block prefix.
@@ -191,7 +191,7 @@ template <int N, typename T = std::string> struct FixedGroupBlock
     void WriteBlockPrefix(std::ostream &out, OffsetIterator first, OffsetIterator last) const
     {
         std::uint32_t index = 0;
-        std::array<ValueType, BLOCK_SIZE> block_prefix;
+        std::array<ValueType, BLOCK_SIZE_> block_prefix;
         for (OffsetIterator curr = first, next = std::next(first); curr != last; ++curr, ++next)
         {
             const std::uint32_t data_length = *next - *curr;
@@ -213,13 +213,13 @@ template <int N, typename T = std::string> struct FixedGroupBlock
                             DataIterator &last) const
     {
         DataIterator fixed_lengths = first; // iterator to the fixed lengths part
-        std::advance(first, BLOCK_SIZE);    // advance first to the block data part
+        std::advance(first, BLOCK_SIZE_);    // advance first to the block data part
         for (std::uint32_t i = 0; i < local_index; ++i)
         {
             first += static_cast<unsigned char>(*fixed_lengths++);
         }
 
-        if (local_index < BLOCK_SIZE)
+        if (local_index < BLOCK_SIZE_)
         {
             last = first + static_cast<unsigned char>(*fixed_lengths);
         }
@@ -228,7 +228,7 @@ template <int N, typename T = std::string> struct FixedGroupBlock
 
 template <typename GroupBlock> struct IndexedData
 {
-    static constexpr std::uint32_t BLOCK_SIZE = GroupBlock::BLOCK_SIZE;
+    static constexpr std::uint32_t BLOCK_SIZE_ = GroupBlock::BLOCK_SIZE_;
 
     using BlocksNumberType = std::uint32_t;
     using DataSizeType = std::uint64_t;
@@ -258,7 +258,7 @@ template <typename GroupBlock> struct IndexedData
         const auto number_of_elements = std::distance(first, sentinel);
         const BlocksNumberType number_of_blocks =
             number_of_elements == 0 ? 0
-                                    : 1 + (std::distance(first, sentinel) - 1) / (BLOCK_SIZE + 1);
+                                    : 1 + (std::distance(first, sentinel) - 1) / (BLOCK_SIZE_ + 1);
         out.write((const char *)&number_of_blocks, sizeof(number_of_blocks));
 
         // Write block references and compute the total data size that includes prefix and data
@@ -266,7 +266,7 @@ template <typename GroupBlock> struct IndexedData
         DataSizeType data_size = 0;
         for (OffsetIterator curr = first, next = first; next != sentinel; curr = next)
         {
-            std::advance(next, std::min<diff_type>(BLOCK_SIZE, std::distance(next, sentinel)));
+            std::advance(next, std::min<diff_type>(BLOCK_SIZE_, std::distance(next, sentinel)));
             data_size += block.WriteBlockReference(out, data_size, curr, next);
             std::advance(next, std::min<diff_type>(1, std::distance(next, sentinel)));
             data_size += *next - *curr;
@@ -278,7 +278,7 @@ template <typename GroupBlock> struct IndexedData
         // Write data blocks that are (prefix, data)
         for (OffsetIterator curr = first, next = first; next != sentinel; curr = next)
         {
-            std::advance(next, std::min<diff_type>(BLOCK_SIZE, std::distance(next, sentinel)));
+            std::advance(next, std::min<diff_type>(BLOCK_SIZE_, std::distance(next, sentinel)));
             block.WriteBlockPrefix(out, curr, next);
             std::advance(next, std::min<diff_type>(1, std::distance(next, sentinel)));
             std::copy(data + *curr, data + *next, std::ostream_iterator<unsigned char>(out));
@@ -325,8 +325,8 @@ template <typename GroupBlock> struct IndexedData
     ResultType at(std::uint32_t index) const
     {
         // Get block external ad internal indices
-        const BlocksNumberType block_idx = index / (BLOCK_SIZE + 1);
-        const std::uint32_t internal_idx = index % (BLOCK_SIZE + 1);
+        const BlocksNumberType block_idx = index / (BLOCK_SIZE_ + 1);
+        const std::uint32_t internal_idx = index % (BLOCK_SIZE_ + 1);
 
         if (block_idx >= blocks_number)
             return ResultType();
